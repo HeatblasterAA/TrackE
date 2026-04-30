@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1006509733287",
+    "project_id": "tracke-app-d0fcf",
+    "storage_bucket": "tracke-app-d0fcf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006509733287:android:48988b9cf6269db3577282",
+        "android_client_info": {
+          "package_name": "com.amandev.tracke"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDR4wHuVRX11sRyupy9gLlDv0rMp8ALgX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
