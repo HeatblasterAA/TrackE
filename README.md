@@ -2,236 +2,160 @@
 
 SMS-powered expense tracker built with Flutter + Firebase.
 
-Status: MVP Setup Complete → Feature Development Starting
-
----
+Status: Core MVP Backbone Complete
 
 ## Overview
 
-TrackE automatically captures UPI / bank debit transactions from SMS and converts them into structured expense records.
+TrackE automatically reads financial SMS, parses debit transactions, deduplicates them, stores locally, and syncs across devices.
 
-Primary goals:
+Core flow:
 
-- Automatic expense capture (minimal manual entry)
-- Date range expense summaries
-- Transaction history + filters
-- Cloud sync across devices
-- Android first, iOS-ready backend design
+Auth → Permission → Native SMS Read → Parse → Dedup → Hive Store → Firestore Sync → Cross-device Hydration → Dashboard
 
----
+## Stack
 
-## Tech Stack
-
-### Frontend
+### Mobile
 - Flutter
 - Riverpod
-- Hive (local storage)
+- Hive
 - flutter_secure_storage
-- intl
 - permission_handler
+- intl
 
 ### Backend
-- Firebase Auth
+- Firebase Auth (Phone OTP)
 - Cloud Firestore
-- Cloud Functions
-- Firebase Crashlytics
-- Firebase Analytics (disabled initially)
-- Firebase Cloud Messaging (later)
+- Crashlytics (installed)
+- Analytics (disabled)
+- FCM (planned)
 
-### Architecture
-- Monorepo
-- Feature-first modular structure
-- Local-first with cloud sync
-- On-device parsing
-- Cloud validation fallback
+### Native Android
+- Kotlin MethodChannel
+- SMS Inbox Reader
+- Native sender filtering
 
----
+## Architecture
 
-## Project Structure
+Android SMS Inbox → Kotlin Native Filter → Flutter Bridge → TransactionParser → SHA256 Dedup → Hive Local Store → Firestore Sync → Device Hydration → Dashboard UI
 
-```text
-TrackE/
-├── docs/
-├── mobile/
-│   └── app/
-├── backend/
-├── shared/
-├── .env.example
-├── .gitignore
-└── README.md
+Principles:
+
+Local-first → Sync-second → Privacy-first
+
+Raw SMS is read transiently; parsed structured data is stored.
+
+## Current Features
+
+### Auth
+- Firebase phone auth
+- OTP verify flow
+- persistent login
+- logout
+- India (+91) / Saudi (+966)
+- E.164 normalization
+
+### App Flow
+Launch → Splash → Auth → OTP → Onboarding → Permission → Dashboard
+
+Returning:
+
+Launch → Dashboard
+
+### SMS Ingestion
+- READ_SMS permission flow
+- Kotlin platform channel bridge
+- 90-day SMS fetch
+- native financial sender filtering
+- real device validated
+
+### Parser v1
+Supports:
+- UPI debit
+- bank debit
+- card spend
+- INR + SAR
+- merchant extraction
+- payee extraction
+- provider extraction
+- bank detection
+- mode detection
+- category tagging
+- false-positive rejection
+
+Structured model:
+
+id, amount, type, mode, displayName, payeeName, provider, bank, category, timestamp
+
+### Dedup
+Fingerprint:
+
+sender + body + timestamp → SHA256
+
+Flow:
+
+Parse → Hash → Exists? → Insert only if new
+
+### Persistence
+Local:
+- Hive
+
+Cloud:
+- Firestore `users/{uid}/transactions/{txnId}`
+
+Rules:
+- user-isolated auth-based access
+
+Cross-device sync:
+- login on new device → hydrate from Firestore → dashboard populated
+- Validated.
+
+### Dashboard v1
+- total spend card
+- recent transaction feed
+- refresh import
+- clear local
+- logout
+- auto import on boot
+
+## Repo Structure
+
 ```
-
-Flutter app:
-
-```text
 mobile/app/lib/
-├── main.dart
-├── app.dart
-├── firebase_options.dart
 ├── core/
+│   ├── services/
+│   ├── storage/
+│   └── utils/
 ├── features/
+│   ├── auth/
+│   ├── onboarding/
+│   ├── dashboard/
+│   ├── parser/
+│   └── splash/
 ├── models/
 ├── repositories/
-├── providers/
-└── widgets/
+└── providers/
 ```
 
----
+## MVP Remaining
+- incremental scan (lastScanAt)
+- background auto import (WorkManager / BroadcastReceiver)
+- production OTP
+- settings page polish
+- better dashboard UX
 
-## Setup Completed (Day 1)
+## Current State
 
-### Environment
-Completed:
+Implemented:
+- Auth ✅
+- Onboarding ✅
+- Permission flow ✅
+- Native SMS bridge ✅
+- Parser v1 ✅
+- Dedup ✅
+- Hive persistence ✅
+- Firestore sync ✅
+- Cross-device persistence ✅
+- Dashboard v1 ✅
 
-- Flutter SDK installed
-- Android Studio configured
-- Emulator configured
-- Java 17 configured
-- Gradle configured
-- Android SDK Platform installed
-- Android NDK repaired/reinstalled
-- CocoaPods installed
-- Firebase CLI installed
-- FlutterFire CLI installed
-
-### Flutter
-Completed:
-
-- Flutter app scaffold created
-- package renamed:
-
-```text
-com.example.app → com.amandev.tracke
-```
-
-- App name:
-
-```text
-TrackE
-```
-
-- Riverpod wired into root app
-- Base scaffold created
-- Default counter app removed
-
-### Firebase
-Completed:
-
-- Firebase project created:
-
-```text
-tracke-app-d0fcf
-```
-
-- Android app registered:
-
-```text
-com.amandev.tracke
-```
-
-- google-services connected
-- firebase_options.dart generated
-- Firebase initialized in app
-
-### Git
-Completed:
-
-- Repository initialized
-- GitHub remote connected
-- Initial commit pushed
-
-Repo:
-
-```text
-https://github.com/HeatblasterAA/TrackE
-```
-
----
-
-## Problems Faced + Resolved
-
-1. Gradle hanging on first build  
-Resolved by cleaning caches.
-
-2. Corrupted Android NDK install  
-Resolved by deleting + reinstalling NDK.
-
-3. Deprecated telephony package  
-Removed.
-
-4. Firebase permission/project setup issues  
-Resolved via Firebase Console creation.
-
-5. Android package rename crash  
-Resolved by aligning native Android package paths.
-
-6. Flutter hot reload stale state  
-Resolved with Hot Restart.
-
----
-
-## MVP Scope
-
-V1:
-
-- Phone auth
-- Onboarding
-- SMS permission flow
-- Native Android SMS ingestion bridge
-- Parser engine
-- Dedup engine
-- Transaction storage
-- Transaction list
-- Dashboard summary
-- Settings
-
-Not in MVP:
-
-- Budgeting
-- AI insights
-- Bank statement import
-- iOS ingestion
-- OCR receipt scan
-
----
-
-## Next Development Order
-
-1. Splash / boot flow
-2. Auth
-3. Onboarding
-4. SMS permission flow
-5. Native Android SMS bridge
-6. Parser engine
-7. Dedup engine
-8. Transaction storage
-9. Dashboard
-10. Settings
-
----
-
-## Notes
-
-Core principle:
-
-> Local-first → Sync-second → Privacy-first
-
-Store parsed data, not raw SMS wherever possible.
-
-Fallbacks:
-
-- permission denied → manual mode
-- parser fail → unknown transaction state
-- sync fail → queue locally
-- duplicate uncertain → pending review
-
----
-
-## Changelog
-
-### Day 1
-- Project initialized
-- Flutter setup completed
-- Firebase integrated
-- GitHub repo created
-- Base architecture scaffold created
+Next:
+- Incremental scan → Background import

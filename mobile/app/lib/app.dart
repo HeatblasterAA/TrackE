@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'features/splash/splash_page.dart';
+
 class TrackEApp extends StatelessWidget {
   const TrackEApp({super.key});
 
@@ -12,11 +14,7 @@ class TrackEApp extends StatelessWidget {
         colorSchemeSeed: Colors.green,
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('TrackE'),
-        ),
-      ),
+      home: const SplashPage(),
     );
   }
 }
