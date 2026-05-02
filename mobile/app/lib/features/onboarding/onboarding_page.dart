@@ -22,9 +22,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const PermissionPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const PermissionPage()),
       );
     }
   }
@@ -43,23 +41,42 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 },
                 children: const [
                   _Slide(
-                    title: 'Track your spending automatically',
+                    title: 'Automatic expense tracking',
                     subtitle:
-                        'TrackE reads transaction SMS and builds expenses automatically.',
+                        'TrackE reads transaction SMS and builds your expense history automatically.',
                   ),
+
                   _Slide(
-                    title: 'Privacy first',
+                    title: 'Private by design',
                     subtitle:
-                        'We store parsed transactions, not raw SMS bodies whenever possible.',
+                        'OTP, personal chats, and non-financial SMS are ignored. We only detect transaction messages.',
                   ),
+
                   _Slide(
-                    title: 'Your permission matters',
+                    title: 'Only transaction metadata is saved',
                     subtitle:
-                        'SMS access is used only to detect spending transactions.',
+                        'We do not store full raw SMS content. Amount, merchant, date, and category are saved to build insights.',
                   ),
                 ],
               ),
             ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                3,
+                (i) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: page == i ? 20 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: page == i ? Colors.green : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.all(20),
               child: SizedBox(
@@ -81,10 +98,7 @@ class _Slide extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _Slide({
-    required this.title,
-    required this.subtitle,
-  });
+  const _Slide({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -95,10 +109,7 @@ class _Slide extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),

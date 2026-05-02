@@ -14,8 +14,16 @@ class AuthRepository {
         await _auth.signInWithCredential(credential);
       },
       verificationFailed: (FirebaseAuthException e) {
-        failed(e.message ?? 'Verification failed');
-      },
+  print(
+    'FIREBASE OTP ERROR -> '
+    '${e.code} | '
+    '${e.message}',
+  );
+
+  failed(
+    '${e.code} | ${e.message}',
+  );
+},
       codeSent: (String verificationId, int? resendToken) {
         codeSent(verificationId);
       },

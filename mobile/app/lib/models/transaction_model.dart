@@ -1,8 +1,11 @@
 class TransactionModel {
+  final String id;
+
   final double amount;
+  final String currency;
+
   final String type;
   final String mode;
-  final String id;
 
   final String displayName;
   final String payeeName;
@@ -16,6 +19,7 @@ class TransactionModel {
   TransactionModel({
     required this.id,
     required this.amount,
+    required this.currency,
     required this.type,
     required this.mode,
     required this.displayName,
@@ -30,6 +34,7 @@ class TransactionModel {
     return {
       'id': id,
       'amount': amount,
+      'currency': currency,
       'type': type,
       'mode': mode,
       'displayName': displayName,

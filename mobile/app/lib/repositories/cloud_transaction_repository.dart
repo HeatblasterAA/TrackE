@@ -52,6 +52,19 @@ class CloudTransactionRepository {
 
     await batch.commit();
   }
+  Future<void> clearAll() async {
+  final snap = await _collection.get();
+
+  if (snap.docs.isEmpty) return;
+
+  final batch = _db.batch();
+
+  for (final doc in snap.docs) {
+    batch.delete(doc.reference);
+  }
+
+  await batch.commit();
+}
 
   Future<List<Map<String, dynamic>>>
   fetchAll() async {

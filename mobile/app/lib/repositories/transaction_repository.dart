@@ -4,26 +4,25 @@ import 'package:app/models/transaction_model.dart';
 class TransactionRepository {
   final box = HiveService.transactionBox;
 
-  Future<int> saveAllIfNew(
-    List<TransactionModel> transactions,
-  ) async {
-    int inserted = 0;
+ Future<List<TransactionModel>> saveAllReturningNew(
+  List<TransactionModel> transactions,
+) async {
+  final inserted = <TransactionModel>{};
+  final batch = <String, Map<String, dynamic>>{};
 
-    for (final txn in transactions) {
-      if (box.containsKey(txn.id)) {
-        continue;
-      }
+  for (final txn in transactions) {
+    if (box.containsKey(txn.id)) continue;
 
-      await box.put(
-        txn.id,
-        txn.toMap(),
-      );
-
-      inserted++;
-    }
-
-    return inserted;
+    batch[txn.id] = txn.toMap();
+    inserted.add(txn);
   }
+
+  if (batch.isNotEmpty) {
+    await box.putAll(batch);
+  }
+
+  return inserted.toList();
+}
   Future<void> replaceAll(
   List<Map<String, dynamic>> txns,
 ) async {

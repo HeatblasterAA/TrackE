@@ -1,5 +1,6 @@
 import '../../models/transaction_model.dart';
 import '../../core/utils/hash_util.dart';
+import '../../shared/constants/merchant_categories.dart';
 
 class TransactionParser {
   static TransactionModel? parse(
@@ -15,8 +16,12 @@ class TransactionParser {
 
     if (!_isValidDebit(lower)) return null;
 
-    final amount = _extractAmount(body);
-    if (amount == null) return null;
+    final parsedAmount =
+    _extractAmountAndCurrency(body);
+
+
+if (parsedAmount == null) return null;
+
 
     final payee = _extractPayee(body);
     final provider = _extractProvider(body);
@@ -31,7 +36,8 @@ class TransactionParser {
 
     return TransactionModel(
       id: id,
-      amount: amount,
+      amount: parsedAmount.amount,
+currency: parsedAmount.currency,
       type: 'debit',
       mode: mode,
       displayName: displayName,
@@ -76,20 +82,37 @@ class TransactionParser {
     return positive.any(text.contains);
   }
 
-  static double? _extractAmount(String text) {
-    final regex = RegExp(
-      r'(rs\.?|inr|sar)\s*([\d,]+(\.\d+)?)',
-      caseSensitive: false,
-    );
+  static ({double amount, String currency})?
+_extractAmountAndCurrency(String text) {
+  final regex = RegExp(
+    r'(rs\.?|inr|sar)\s*([\d,]+(\.\d+)?)',
+    caseSensitive: false,
+  );
 
-    final match = regex.firstMatch(text);
-    if (match == null) return null;
+  final match = regex.firstMatch(text);
+  if (match == null) return null;
 
-    final raw =
-        match.group(2)!.replaceAll(',', '');
+  final token =
+      (match.group(1) ?? '').toLowerCase();
 
-    return double.tryParse(raw);
-  }
+  final raw =
+      match.group(2)!.replaceAll(',', '');
+
+  final amount =
+      double.tryParse(raw);
+
+  if (amount == null) return null;
+
+  final currency =
+      token.contains('sar')
+          ? 'SAR'
+          : 'INR';
+
+  return (
+    amount: amount,
+    currency: currency,
+  );
+}
 
   static String _extractPayee(String text) {
     final upiRegex = RegExp(
@@ -127,33 +150,55 @@ class TransactionParser {
   }
 
   static String _extractDisplayName(
-    String body,
-    String payee,
-    String provider,
-  ) {
-    if (payee.isNotEmpty) {
-      return _formatName(payee);
-    }
-
-    final cardRegex = RegExp(
-      r'at\s+([A-Za-z0-9 &._\-]+?)(?:\.| for |$)',
-      caseSensitive: false,
-    );
-
-    final cardMatch = cardRegex.firstMatch(body);
-
-    if (cardMatch != null) {
-      return _formatName(
-        cardMatch.group(1) ?? '',
-      );
-    }
-
-    if (provider.isNotEmpty) {
-      return _formatName(provider);
-    }
-
-    return 'Unknown';
+  String body,
+  String payee,
+  String provider,
+) {
+  if (payee.isNotEmpty) {
+    return _formatName(payee);
   }
+
+  final cardRegex = RegExp(
+    r'at\s+([A-Za-z0-9 &._\-]+?)(?:\.| for |$)',
+    caseSensitive: false,
+  );
+
+  final cardMatch = cardRegex.firstMatch(body);
+
+  if (cardMatch != null) {
+    return _formatName(
+      cardMatch.group(1) ?? '',
+    );
+  }
+
+  final infoRegex = RegExp(
+    r'Info([A-Za-z0-9*._\-]+)',
+    caseSensitive: false,
+  );
+
+  final infoMatch =
+      infoRegex.firstMatch(body);
+
+  if (infoMatch != null) {
+    return _formatName(
+      infoMatch.group(1) ?? '',
+    );
+  }
+
+  if (provider.isNotEmpty) {
+    return _formatName(provider);
+  }
+
+  if (body.toLowerCase().contains('atm')) {
+    return 'ATM Withdrawal';
+  }
+
+  if (body.toLowerCase().contains('transfer')) {
+    return 'Bank Transfer';
+  }
+
+  return 'Bank Debit';
+}
 
   static String _extractBank(String sender) {
     if (sender.contains('BOB')) return 'BOB';
@@ -174,28 +219,51 @@ class TransactionParser {
     return 'BANK';
   }
 
-  static String _formatName(String raw) {
-    if (raw.isEmpty) return 'Unknown';
+ static String _formatName(String raw) {
+  if (raw.isEmpty) return 'Unknown';
 
-    return raw
-        .replaceAll('-', ' ')
-        .replaceAll('_', ' ')
-        .trim()
-        .toUpperCase();
+  final cleaned = raw
+      .replaceAll('*', ' ')
+      .replaceAll('-', ' ')
+      .replaceAll('_', ' ')
+      .replaceAll(
+        RegExp(r'\d+'),
+        '',
+      )
+      .replaceAll(
+        RegExp(r'\s+'),
+        ' ',
+      )
+      .trim()
+      .toLowerCase();
+
+  if (cleaned.isEmpty) {
+    return 'Bank Debit';
   }
+
+  return cleaned
+      .split(' ')
+      .map(
+        (w) => w.isEmpty
+            ? ''
+            : '${w[0].toUpperCase()}${w.substring(1)}',
+      )
+      .join(' ');
+}
 
   static String _categorize(String name) {
-    final n = name.toUpperCase();
+  final n = name.toUpperCase();
 
-    if (n.contains('PAYTM')) return 'Bills';
-    if (n.contains('JIO')) return 'Recharge';
-    if (n.contains('SWIGGY') ||
-        n.contains('ZOMATO') ||
-        n.contains('DOMINOS') ||
-        n.contains('STARBUCKS')) {
-      return 'Food';
+  for (final entry in merchantCategories.entries) {
+    if (n.contains(entry.key)) {
+      return entry.value;
     }
-
-    return 'Other';
   }
+
+  if (n != 'BANK DEBIT') {
+    return 'Transfer';
+  }
+print('UNKNOWN MERCHANT -> $name');
+  return 'Other';
+}
 }

@@ -1,16 +1,27 @@
 # TrackE
 
-SMS-powered expense tracker built with Flutter + Firebase.
+SMS-powered automatic expense tracker built with Flutter + Firebase.
 
-Status: Core MVP Backbone Complete
+Status: MVP Complete (Private Beta Ready)
+
+---
 
 ## Overview
 
-TrackE automatically reads financial SMS, parses debit transactions, deduplicates them, stores locally, and syncs across devices.
+TrackE automatically detects spending transactions from financial SMS, parses them into structured records, stores locally, syncs to cloud, and builds spending insights.
 
 Core flow:
 
-Auth → Permission → Native SMS Read → Parse → Dedup → Hive Store → Firestore Sync → Cross-device Hydration → Dashboard
+Auth → OTP → Onboarding → SMS Permission → Native SMS Read → Parse → Categorize → Dedup → Hive Store → Firestore Sync → Hydration → Dashboard → Insights
+
+Principles:
+
+Local-first → Sync-second → Privacy-first
+
+Raw SMS is read transiently for parsing.  
+Only structured transaction metadata is persisted.
+
+---
 
 ## Stack
 
@@ -22,58 +33,87 @@ Auth → Permission → Native SMS Read → Parse → Dedup → Hive Store → F
 - permission_handler
 - intl
 
-### Backend
+### Firebase
 - Firebase Auth (Phone OTP)
 - Cloud Firestore
-- Crashlytics (installed)
-- Analytics (disabled)
-- FCM (planned)
+- Firebase Crashlytics
+- Firebase Analytics (installed, unused)
+- Firebase Messaging (planned)
 
 ### Native Android
-- Kotlin MethodChannel
-- SMS Inbox Reader
-- Native sender filtering
+- Kotlin
+- MethodChannel bridge
+- SMS Inbox reader
+- native sender filtering
+
+### Background
+- WorkManager periodic scan
+
+---
 
 ## Architecture
 
-Android SMS Inbox → Kotlin Native Filter → Flutter Bridge → TransactionParser → SHA256 Dedup → Hive Local Store → Firestore Sync → Device Hydration → Dashboard UI
+Android SMS Inbox  
+→ Kotlin Native Filter  
+→ Flutter Bridge  
+→ TransactionParser  
+→ SHA256 Dedup  
+→ Hive Local Store  
+→ Firestore Sync  
+→ Cross-device Hydration  
+→ Dashboard / Insights UI
 
-Principles:
+---
 
-Local-first → Sync-second → Privacy-first
+## Authentication
 
-Raw SMS is read transiently; parsed structured data is stored.
-
-## Current Features
-
-### Auth
+Implemented:
 - Firebase phone auth
-- OTP verify flow
+- OTP verify screen
 - persistent login
 - logout
-- India (+91) / Saudi (+966)
+- India (+91)
+- Saudi (+966)
 - E.164 normalization
+- production-ready OTP flow
 
-### App Flow
+Flow:
+
 Launch → Splash → Auth → OTP → Onboarding → Permission → Dashboard
 
 Returning:
 
-Launch → Dashboard
+Launch → Splash → Dashboard
 
-### SMS Ingestion
-- READ_SMS permission flow
-- Kotlin platform channel bridge
-- 90-day SMS fetch
-- native financial sender filtering
-- real device validated
+---
 
-### Parser v1
+## SMS Ingestion
+
+Implemented:
+- READ_SMS permission
+- RECEIVE_SMS permission
+- Kotlin platform bridge
+- native sender filtering
+- first full scan
+- incremental watermark scan
+- 2-minute overlap safety window
+- background scan infra
+- real-device validated
+
+Bridge:
+
+Flutter ↔ Kotlin MethodChannel (`tracke/sms`)
+
+---
+
+## Parser v1
+
 Supports:
 - UPI debit
 - bank debit
 - card spend
-- INR + SAR
+- INR
+- SAR
 - merchant extraction
 - payee extraction
 - provider extraction
@@ -82,44 +122,170 @@ Supports:
 - category tagging
 - false-positive rejection
 
+Rejects:
+- OTP
+- login alerts
+- credits
+- loan spam
+- approval spam
+- verification messages
+
 Structured model:
 
-id, amount, type, mode, displayName, payeeName, provider, bank, category, timestamp
+- id
+- amount
+- currency
+- type
+- mode
+- displayName
+- payeeName
+- provider
+- bank
+- category
+- timestamp
 
-### Dedup
+---
+
+## Dedup
+
 Fingerprint:
 
 sender + body + timestamp → SHA256
 
 Flow:
 
-Parse → Hash → Exists? → Insert only if new
+Parse → Hash → Exists → Insert only if new
 
-### Persistence
-Local:
+Prevents:
+- duplicate imports
+- repeat scan duplication
+- cloud duplication
+
+---
+
+## Persistence
+
+### Local
 - Hive
 
-Cloud:
+### Cloud
 - Firestore `users/{uid}/transactions/{txnId}`
 
 Rules:
-- user-isolated auth-based access
+- user isolated
+- auth gated
+- cross-device sync
+- hydration on login
 
-Cross-device sync:
-- login on new device → hydrate from Firestore → dashboard populated
-- Validated.
+Validated on real device.
 
-### Dashboard v1
-- total spend card
-- recent transaction feed
-- refresh import
-- clear local
+---
+
+## Dashboard
+
+Implemented:
+
+### Summary
+- selected spend
+- today spend
+- top category
+- transaction count
+
+### Date Filters
+- Today
+- Week
+- Month
+- Custom range
+- All time
+
+### Category Filters
+- dynamic chips
+- All + detected categories
+
+### Transactions
+- formatted amount
+- native currency symbol
+- merchant / payee
+- bank
+- mode
+- date
+- category badge
+
+### Detail Sheet
+Tap transaction →
+- amount
+- merchant
+- category
+- mode
+- bank
+- provider
+- date/time
+
+### Actions
+- refresh scan
+- rebuild history
 - logout
-- auto import on boot
+
+### Empty States
+- no transactions
+- no filtered results
+- reset filters CTA
+
+---
+
+## Insights
+
+Implemented:
+- total spend
+- transaction count
+- top categories
+- biggest spend
+- average spend
+
+---
+
+## Currency
+
+Hybrid model:
+
+Each transaction stores native currency.
+
+Supported:
+- INR
+- SAR
+
+No forced conversion.  
+Display remains source currency.
+
+---
+
+## Privacy
+
+Built into onboarding:
+
+- OTP ignored
+- personal SMS ignored
+- non-financial SMS ignored
+- raw SMS not stored
+- only parsed transaction metadata persisted
+
+---
+
+## Reliability
+
+Crash monitoring:
+- global uncaught exceptions
+- scan failures
+- cloud sync failures
+- raw / parsed / inserted logging
+
+Powered by Firebase Crashlytics.
+
+---
 
 ## Repo Structure
 
-```
+```text
 mobile/app/lib/
 ├── core/
 │   ├── services/
@@ -129,6 +295,7 @@ mobile/app/lib/
 │   ├── auth/
 │   ├── onboarding/
 │   ├── dashboard/
+│   ├── insights/
 │   ├── parser/
 │   └── splash/
 ├── models/
@@ -136,26 +303,41 @@ mobile/app/lib/
 └── providers/
 ```
 
-## MVP Remaining
-- incremental scan (lastScanAt)
-- background auto import (WorkManager / BroadcastReceiver)
-- production OTP
-- settings page polish
-- better dashboard UX
+---
 
 ## Current State
 
 Implemented:
 - Auth ✅
+- OTP Verify ✅
 - Onboarding ✅
 - Permission flow ✅
 - Native SMS bridge ✅
 - Parser v1 ✅
+- Categorization ✅
 - Dedup ✅
 - Hive persistence ✅
 - Firestore sync ✅
-- Cross-device persistence ✅
-- Dashboard v1 ✅
+- Cross-device hydration ✅
+- Incremental scan ✅
+- Background scan infra ✅
+- Crashlytics wiring ✅
+- Dashboard ✅
+- Insights ✅
 
-Next:
-- Incremental scan → Background import
+Status:
+
+Private beta ready.
+
+---
+
+## Next
+
+Post-beta:
+- parser expansion
+- smarter categorization
+- merchant learning
+- recurring subscriptions
+- budgeting
+- exports
+- iOS exploration
