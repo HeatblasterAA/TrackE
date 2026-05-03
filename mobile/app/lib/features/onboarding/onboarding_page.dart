@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'permission_page.dart';
 
+/// Three-slide intro. Slide 2 wording is the verbatim Play Store
+/// disclosure language and MUST stay in sync with the data-safety form.
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -13,8 +15,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final controller = PageController();
   int page = 0;
 
+  static const _slides = <_SlideData>[
+    _SlideData(
+      title: 'Automatic expense tracking',
+      subtitle:
+          'TrackE organises your spending automatically, processed locally on your device.',
+    ),
+    _SlideData(
+      title: 'Only your bank notifications',
+      subtitle:
+          'TrackE reads transaction notifications from selected financial apps only. Other notifications (chats, OTPs, news, system) are ignored on-device.',
+    ),
+    _SlideData(
+      title: 'Your messages stay on your phone',
+      subtitle:
+          'Raw bank messages are never uploaded. Only structured transaction data — amount, merchant, category — syncs across your devices.',
+    ),
+  ];
+
   void next() {
-    if (page < 2) {
+    if (page < _slides.length - 1) {
       controller.nextPage(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
@@ -36,34 +56,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Expanded(
               child: PageView(
                 controller: controller,
-                onPageChanged: (v) {
-                  setState(() => page = v);
-                },
-                children: const [
-                  _Slide(
-                    title: 'Automatic expense tracking',
-                    subtitle:
-                        'TrackE reads transaction SMS and builds your expense history automatically.',
-                  ),
-
-                  _Slide(
-                    title: 'Private by design',
-                    subtitle:
-                        'OTP, personal chats, and non-financial SMS are ignored. We only detect transaction messages.',
-                  ),
-
-                  _Slide(
-                    title: 'Only transaction metadata is saved',
-                    subtitle:
-                        'We do not store full raw SMS content. Amount, merchant, date, and category are saved to build insights.',
-                  ),
-                ],
+                onPageChanged: (v) => setState(() => page = v),
+                children: _slides.map((s) => _Slide(data: s)).toList(),
               ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                3,
+                _slides.length,
                 (i) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: page == i ? 20 : 8,
@@ -75,7 +75,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.all(20),
@@ -83,7 +82,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: next,
-                  child: Text(page == 2 ? 'Continue' : 'Next'),
+                  child: Text(page == _slides.length - 1 ? 'Continue' : 'Next'),
                 ),
               ),
             ),
@@ -94,11 +93,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 }
 
-class _Slide extends StatelessWidget {
+class _SlideData {
   final String title;
   final String subtitle;
+  const _SlideData({required this.title, required this.subtitle});
+}
 
-  const _Slide({required this.title, required this.subtitle});
+class _Slide extends StatelessWidget {
+  final _SlideData data;
+  const _Slide({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -108,13 +111,13 @@ class _Slide extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            title,
+            data.title,
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           Text(
-            subtitle,
+            data.subtitle,
             style: const TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),

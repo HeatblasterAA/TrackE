@@ -1,7 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.READ_SMS"/>
-
     <application
         android:name="${applicationName}"
         android:label="TrackE"
@@ -27,6 +25,16 @@
             </intent-filter>
 
         </activity>
+
+        <service
+            android:name=".TrackENotificationService"
+            android:label="TrackE"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <meta-data
             android:name="flutterEmbedding"

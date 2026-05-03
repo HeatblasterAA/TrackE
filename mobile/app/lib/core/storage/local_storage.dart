@@ -8,6 +8,7 @@ class LocalStorage {
 
   static const _lastScanKey = 'last_scan_at';
   static const _pendingScanKey = 'pending_scan';
+  static const _listenerEverEnabledKey = 'listener_ever_enabled';
 
   static Future<bool> isOnboardingComplete() async {
     final value = await _storage.read(
@@ -59,6 +60,20 @@ static Future<void> clearScanState() async {
     await _storage.write(
       key: _lastScanKey,
       value: timestamp.toString(),
+    );
+  }
+
+  static Future<bool> wasListenerEverEnabled() async {
+    final value = await _storage.read(
+      key: _listenerEverEnabledKey,
+    );
+    return value == 'true';
+  }
+
+  static Future<void> setListenerEverEnabled() async {
+    await _storage.write(
+      key: _listenerEverEnabledKey,
+      value: 'true',
     );
   }
 
